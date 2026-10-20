@@ -1,0 +1,5 @@
+# Runtime dependencies. Deliberately does NOT include torch:
+# the server validates and generates code, it never executes it.
+fastapi>=0.115,<0.120
+uvicorn[standard]>=0.30,<0.35
+pydantic>=2.8,<3

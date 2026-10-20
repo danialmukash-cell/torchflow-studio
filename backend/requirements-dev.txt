@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# Test-time only. torch is required to verify that generated models
+# actually run on CPU; it is not a runtime dependency of the server.
+pytest>=8.0,<9
+httpx>=0.27,<0.29
+torch>=2.2,<3
