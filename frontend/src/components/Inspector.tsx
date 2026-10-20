@@ -113,7 +113,7 @@ function EmptyInspector() {
         <li>· Use the toolbar to save, load, or start from an example.</li>
       </ul>
       <p className="rounded-md border border-slate-800 bg-slate-900/60 p-2.5">
-        Shape propagation and PyTorch code generation arrive in Milestone 2.
+        Use Validate to inspect tensor shapes and Generate PyTorch to export executable model code.
       </p>
     </div>
   );

@@ -21,6 +21,9 @@ export function Toolbar() {
   const loadExample = useGraphStore((state) => state.loadExample);
   const newGraph = useGraphStore((state) => state.newGraph);
   const notify = useGraphStore((state) => state.notify);
+  const validate = useGraphStore((state) => state.validate);
+  const generate = useGraphStore((state) => state.generate);
+  const status = useGraphStore((state) => state.backendStatus);
 
   const handleSave = () => {
     const document = getDocument();
@@ -66,7 +69,7 @@ export function Toolbar() {
           TorchFlow <span className="text-sky-400">Studio</span>
         </h1>
         <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
-          Milestone 1
+          Milestone 2
         </span>
         <span className="hidden truncate text-xs text-slate-500 md:inline">
           {graphName}
@@ -74,6 +77,8 @@ export function Toolbar() {
       </div>
 
       <div className="flex items-center gap-2">
+        <button type="button" onClick={() => void validate()} disabled={status !== 'idle'} className={buttonClasses + ' disabled:opacity-40'}>{status === 'validating' ? 'Validating…' : 'Validate'}</button>
+        <button type="button" onClick={() => void generate()} disabled={status !== 'idle'} className={buttonClasses + ' border-sky-700 text-sky-200 disabled:opacity-40'}>{status === 'generating' ? 'Generating…' : 'Generate PyTorch'}</button>
         <button type="button" onClick={handleNew} className={buttonClasses}>
           New
         </button>

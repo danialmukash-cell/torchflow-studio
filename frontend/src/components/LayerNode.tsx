@@ -7,6 +7,8 @@ export type LayerNodeData = {
   label: string;
   summary: string;
   accent: string;
+  shape?: number[];
+  error?: string;
 };
 
 export type LayerFlowNode = Node<LayerNodeData, 'layer'>;
@@ -24,7 +26,7 @@ export function LayerNode({ data, selected }: NodeProps<LayerFlowNode>) {
   return (
     <div
       className="min-w-[176px] rounded-lg border bg-slate-900 px-3 py-2 shadow-lg transition-colors"
-      style={{ borderColor: selected ? data.accent : '#334155' }}
+      style={{ borderColor: data.error ? '#fb7185' : selected ? data.accent : '#334155' }}
     >
       {spec.allowIncoming && (
         <Handle
@@ -46,6 +48,9 @@ export function LayerNode({ data, selected }: NodeProps<LayerFlowNode>) {
       <div className="mt-1 font-mono text-[11px] text-slate-400">
         {data.summary}
       </div>
+
+      {data.shape && <div className="mt-1 rounded bg-sky-950/60 px-1.5 py-1 font-mono text-[10px] text-sky-300">shape: [{data.shape.join(', ')}]</div>}
+      {data.error && <div className="mt-1 max-w-[250px] text-[10px] text-rose-300" title={data.error}>⚠ {data.error}</div>}
 
       {spec.allowOutgoing && (
         <Handle

@@ -18,6 +18,7 @@ import {
 } from '../graph/model';
 import { toDocument } from '../graph/serialization';
 import { getExample, type ExampleKey } from '../graph/examples';
+import { generateModel, validateGraph, type ValidateResponseDto } from '../api/client';
 
 export type Notice = { kind: 'error' | 'info'; message: string };
 
@@ -25,6 +26,13 @@ const infoNotice = (message: string): Notice => ({ kind: 'info', message });
 const errorNotice = (message: string): Notice => ({ kind: 'error', message });
 
 export type GraphStore = {
+  validation: ValidateResponseDto | null;
+  generatedCode: string | null;
+  backendStatus: 'idle' | 'validating' | 'generating';
+  revision: number;
+  requestId: number;
+  validate: () => Promise<void>;
+  generate: () => Promise<void>;
   graphName: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -60,6 +68,11 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
   selectedEdgeId: null,
   notice: null,
   fitViewRequest: 0,
+  validation: null,
+  generatedCode: null,
+  backendStatus: 'idle',
+  revision: 0,
+  requestId: 0,
 
   addNode: (type, position) =>
     set((state) => {
@@ -73,6 +86,8 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
         selectedNodeId: node.id,
         selectedEdgeId: null,
         notice: null,
+        validation: null, generatedCode: null, backendStatus: 'idle',
+        revision: state.revision + 1, requestId: state.requestId + 1,
       };
     }),
 
@@ -80,7 +95,7 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
     set((state) => ({ nodes: moveNodeInGraph(state.nodes, id, position) })),
 
   updateNodeParams: (id, patch) =>
-    set((state) => ({ nodes: applyParamPatch(state.nodes, id, patch) })),
+    set((state) => ({ nodes: applyParamPatch(state.nodes, id, patch), validation: null, generatedCode: null, backendStatus: 'idle', revision: state.revision + 1, requestId: state.requestId + 1 })),
 
   deleteNode: (id) =>
     set((state) => {
@@ -95,6 +110,7 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
         selectedNodeId:
           state.selectedNodeId === id ? null : state.selectedNodeId,
         selectedEdgeId: edges.some((edge) => edge.id === state.selectedEdgeId) ? state.selectedEdgeId : null,
+        validation: null, generatedCode: null, backendStatus: 'idle', revision: state.revision + 1, requestId: state.requestId + 1,
       };
     }),
 
@@ -106,11 +122,11 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
       }
       const result = duplicateNodeInGraph(state.nodes, id);
       if (!result) return {};
-      return { nodes: result.nodes, selectedNodeId: result.newNode.id, selectedEdgeId: null };
+      return { nodes: result.nodes, selectedNodeId: result.newNode.id, selectedEdgeId: null, validation: null, generatedCode: null, backendStatus: 'idle' as const, revision: state.revision + 1, requestId: state.requestId + 1 };
     }),
 
   deleteEdge: (id) =>
-    set((state) => ({ edges: state.edges.filter((edge) => edge.id !== id), selectedEdgeId: state.selectedEdgeId === id ? null : state.selectedEdgeId })),
+    set((state) => ({ edges: state.edges.filter((edge) => edge.id !== id), selectedEdgeId: state.selectedEdgeId === id ? null : state.selectedEdgeId, validation: null, generatedCode: null, backendStatus: 'idle', revision: state.revision + 1, requestId: state.requestId + 1 })),
 
   connect: (source, target) =>
     set((state) => {
@@ -118,14 +134,14 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
       if (!outcome.ok) {
         return { notice: errorNotice(outcome.reason) };
       }
-      return { edges: outcome.edges, notice: null };
+      return { edges: outcome.edges, notice: null, validation: null, generatedCode: null, backendStatus: 'idle' as const, revision: state.revision + 1, requestId: state.requestId + 1 };
     }),
 
   selectNode: (id) => set({ selectedNodeId: id, ...(id ? { selectedEdgeId: null } : {}) }),
 
   selectEdge: (id) => set({ selectedEdgeId: id, ...(id ? { selectedNodeId: null } : {}) }),
 
-  setGraphName: (name) => set({ graphName: name }),
+  setGraphName: (name) => set((state) => ({ graphName: name, generatedCode: null, revision: state.revision + 1, requestId: state.requestId + 1, backendStatus: 'idle' })),
 
   loadDocument: (document, options) =>
     set((state) => {
@@ -137,6 +153,10 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         fitViewRequest: state.fitViewRequest + 1,
+      revision: state.revision + 1, requestId: state.requestId + 1,
+      validation: null, generatedCode: null, backendStatus: 'idle',
+        revision: state.revision + 1, requestId: state.requestId + 1,
+        validation: null, generatedCode: null, backendStatus: 'idle',
         notice: options?.silent
           ? null
           : infoNotice(`Loaded graph "${clone.name}".`),
@@ -165,4 +185,41 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
   notify: (notice) => set({ notice }),
 
   dismissNotice: () => set({ notice: null }),
+
+  validate: async () => {
+    const { revision, requestId } = get();
+    const request = requestId + 1;
+    const document = get().getDocument();
+    set({ requestId: request, backendStatus: 'validating', notice: null, generatedCode: null });
+    try {
+      const result = await validateGraph(document);
+      if (get().revision !== revision || get().requestId !== request) return;
+      set({ validation: result, backendStatus: 'idle', notice: result.valid
+        ? infoNotice('Graph is valid — tensor shapes are available.')
+        : errorNotice(`${result.errors.length} validation issue(s). See Validation tab.`) });
+    } catch (error) {
+      if (get().revision !== revision || get().requestId !== request) return;
+      set({ backendStatus: 'idle', validation: null, notice: errorNotice(error instanceof Error ? error.message : String(error)) });
+    }
+  },
+  generate: async () => {
+    const { revision, requestId } = get();
+    const request = requestId + 1;
+    const document = get().getDocument();
+    set({ requestId: request, backendStatus: 'generating', notice: null, generatedCode: null });
+    try {
+      const [validation, result] = await Promise.all([validateGraph(document), generateModel(document)]);
+      if (get().revision !== revision || get().requestId !== request) return;
+      set({
+        backendStatus: 'idle', validation,
+        generatedCode: result.valid ? result.code : null,
+        notice: result.valid
+          ? infoNotice('PyTorch nn.Module generated.')
+          : errorNotice(result.errors.map((issue) => issue.message).join(' | ') || 'Invalid graph.'),
+      });
+    } catch (error) {
+      if (get().revision !== revision || get().requestId !== request) return;
+      set({ backendStatus: 'idle', validation: null, notice: errorNotice(error instanceof Error ? error.message : String(error)) });
+    }
+  },
 }));

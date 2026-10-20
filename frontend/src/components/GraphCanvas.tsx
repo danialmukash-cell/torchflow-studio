@@ -24,6 +24,7 @@ function CanvasInner() {
   const edges = useGraphStore((state) => state.edges);
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const selectedEdgeId = useGraphStore((state) => state.selectedEdgeId);
+  const validation = useGraphStore((state) => state.validation);
   const fitViewRequest = useGraphStore((state) => state.fitViewRequest);
   const addNode = useGraphStore((state) => state.addNode);
   const moveNode = useGraphStore((state) => state.moveNode);
@@ -50,10 +51,12 @@ function CanvasInner() {
             label: spec.label,
             summary: summarizeNode(node.type, node.params),
             accent: spec.accent,
+            shape: validation?.shapes[node.id],
+            error: validation?.nodeErrors[node.id],
           },
         };
       }),
-    [nodes, selectedNodeId],
+    [nodes, selectedNodeId, validation],
   );
 
   const rfEdges = useMemo<Edge[]>(

@@ -5,13 +5,15 @@ import { JsonPanel } from './components/JsonPanel';
 import { NodePalette } from './components/NodePalette';
 import { NoticeBanner } from './components/NoticeBanner';
 import { Toolbar } from './components/Toolbar';
+import { ValidationPanel } from './components/ValidationPanel';
+import { CodePanel } from './components/CodePanel';
 import { useGraphStore } from './store/graphStore';
 import {
   loadFromLocalStorage,
   saveToLocalStorage,
 } from './store/persistence';
 
-type RightTab = 'inspector' | 'json';
+type RightTab = 'inspector' | 'validation' | 'code' | 'json';
 
 export default function App() {
   const [hydrated, setHydrated] = useState(false);
@@ -59,6 +61,8 @@ export default function App() {
             >
               Inspector
             </TabButton>
+            <TabButton active={rightTab === 'validation'} onClick={() => setRightTab('validation')}>Validation</TabButton>
+            <TabButton active={rightTab === 'code'} onClick={() => setRightTab('code')}>PyTorch</TabButton>
             <TabButton
               active={rightTab === 'json'}
               onClick={() => setRightTab('json')}
@@ -67,7 +71,7 @@ export default function App() {
             </TabButton>
           </div>
           <div className="min-h-0 flex-1">
-            {rightTab === 'inspector' ? <Inspector /> : <JsonPanel />}
+            {rightTab === 'inspector' ? <Inspector /> : rightTab === 'validation' ? <ValidationPanel /> : rightTab === 'code' ? <CodePanel /> : <JsonPanel />}
           </div>
         </aside>
       </main>
