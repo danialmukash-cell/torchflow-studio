@@ -3,9 +3,9 @@
 A visual PyTorch IDE. Build a neural network on an infinite canvas, inspect it,
 and (soon) train it — without writing boilerplate.
 
-> **Status: Milestone 1 — frontend MVP source.** The visual graph editor, local JSON
-> persistence, and example networks are implemented. Backend validation and PyTorch code
-> generation are Milestone 2 and are not implemented yet. Review verification before release.
+> **Status: Milestone 2 — frontend + PyTorch code generator.** The visual graph editor, local JSON persistence, and example networks are implemented.
+> The FastAPI backend now validates graphs, infers tensor shapes, and generates
+> template-based PyTorch nn.Module models. Model execution/training is not served by the backend.
 
 ## What works today
 
@@ -26,15 +26,31 @@ and (soon) train it — without writing boilerplate.
 | Upload graph JSON (schema-validated) | ✅ |
 | Two bundled example networks | ✅ |
 | Live graph JSON inspector panel | ✅ |
-| Tensor shape propagation | ❌ Milestone 2 |
-| PyTorch code generation | ❌ Milestone 2 |
+| Tensor shape propagation | ✅ FastAPI |
+| PyTorch code generation | ✅ FastAPI |
 | Training / metrics | ❌ Future |
 
 ## Requirements
 
 - Node.js 20+ and npm 10+
+- Python 3.11+ for the FastAPI backend
+- PyTorch for CPU forward-pass tests (not needed to serve the backend)
 
 ## Setup
+
+Launch backend (one terminal):
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+Open http://127.0.0.1:8000/docs for the API documentation.
+
+Launch frontend in another terminal:
 
 ```bash
 git clone https://github.com/danialmukash-cell/torchflow-studio.git
@@ -55,6 +71,17 @@ Open <http://localhost:5173>.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Run the unit tests (Vitest) |
 
+## Backend test suite
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+Includes real generated-code forward-pass tests using PyTorch on CPU.
+The application server itself never executes generated code.
+
 ## Using the editor
 
 - **Add a node** — drag it from the left palette onto the canvas, or click it to
@@ -71,7 +98,7 @@ Open <http://localhost:5173>.
 - Every change is also autosaved to `localStorage` (debounced 400 ms) and
   restored when you reload the page.
 
-## Connection rules (Milestone 1)
+## Connection rules (Milestone 1 and 2)
 
 Milestone 1 supports **sequential single-path** networks only:
 
@@ -124,17 +151,26 @@ frontend/
 The graph model is deliberately independent of React Flow so it can be reused
 by the Python-facing validator and generator in Milestone 2.
 
+## What's new in Milestone 2
+
+- **Validate** checks graph topology, parameters and tensor dimensions via FastAPI.
+- **Generate PyTorch** emits a runnable `torch.nn.Module` when the graph is valid.
+- **Validation** tab shows errors and tensor shapes (excluding batch dimension).
+- **PyTorch** tab displays the generated Python and lets you download `torchflow_model.py`.
+- Structural and parameter edits clear cached results. Dragging nodes does not.
+- There is no training, inference endpoint, branching DAG, or arbitrary user code execution.
+
 ## Known limitations
 
 - Desktop-first layout; there is no mobile layout yet.
-- No shape inference or validation endpoint — that is Milestone 2.
+- Shape inference currently supports sequential flat feature vectors; CNNs and multi-dimensional tensors are not implemented.
 - Imported JSON is checked for supported single-path connectivity, but incomplete
   graphs are allowed until the full Milestone 2 validator is implemented.
 - No undo/redo.
 
 ## Roadmap
 
-- **Milestone 2** — FastAPI backend: `POST /api/validate`, `POST /api/generate`,
+- **Milestone 2 (implemented)** — FastAPI backend: `POST /api/validate`, `POST /api/generate`,
   `GET /api/health`; tensor shape propagation; PyTorch `nn.Module` generation.
 - **Milestone 3** — integration tests, generated-code execution checks.
 - **Future** — training, loss/accuracy charts, gradient visualization, dataset

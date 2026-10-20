@@ -11,7 +11,7 @@ Thank you for considering a contribution!
 
 ## Scope
 
-Milestone 1 is intentionally frontend-only. Please keep graph types and validation logic framework-independent, and avoid fake features. New node types belong in the node registry. Do not execute arbitrary user-supplied code.
+Milestone 2 includes a stateless FastAPI backend for validation and code generation. Please keep graph types and validation logic framework-independent, and avoid fake features. New node types belong in the node registry. Do not execute arbitrary user-supplied code.
 
 ## Pull requests
 

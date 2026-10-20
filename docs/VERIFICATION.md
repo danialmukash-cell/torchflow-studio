@@ -19,3 +19,11 @@ The GitHub Actions workflow checks these on publication. This release should not
 ## Changes from original generated response
 
 Fixed JSON download document shadowing, tightened parameter validation and graph imports, prevented duplicate Input/Output nodes, corrected binary classifier example, added tests and docs, and introduced edge selection state.
+
+## Milestone 2 local verification — 2026-10-20
+
+- `cd backend && pytest -q`: 41 passed, including real PyTorch CPU model execution tests.
+- `python -m compileall -q backend`: passed.
+- The supplied DeepSeek answer was truncated halfway through graphStore.ts; frontend integration was completed separately.
+- Frontend npm installation timed out in the local container; rely on GitHub Actions for frontend typecheck/build results.
+- Backend only generates source text; it never executes generated code.

@@ -153,8 +153,6 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         fitViewRequest: state.fitViewRequest + 1,
-      revision: state.revision + 1, requestId: state.requestId + 1,
-      validation: null, generatedCode: null, backendStatus: 'idle',
         revision: state.revision + 1, requestId: state.requestId + 1,
         validation: null, generatedCode: null, backendStatus: 'idle',
         notice: options?.silent
