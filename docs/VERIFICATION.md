@@ -38,3 +38,14 @@ Fixed JSON download document shadowing, tightened parameter validation and graph
   downloaded `torchflow_model.py`, and confirmed **New** disabled the previous
   download. The downloaded module accepted a CPU tensor of shape `(3, 784)`
   and returned `(3, 10)`.
+
+## Rust backend migration — 2026-11-09
+
+- Windows: built the Rust server and ran 39 HTTP contract and PyTorch CPU tests
+  against it. All 43 tests of the FastAPI reference also passed.
+- Compared 16 graph fixtures on both servers: HTTP statuses and successful
+  response payloads matched after parsing generated Python into syntax trees.
+  Schema rejection messages use the Rust extractor's format.
+- Chrome against Vite and the Rust server: loaded the MLP example, generated and
+  downloaded `torchflow_model.py`, and confirmed **New** disabled the previous
+  download. The downloaded module ran on CPU: `(3, 784)` in, `(3, 10)` out.

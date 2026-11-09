@@ -13,16 +13,10 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.main import app  # noqa: E402
-
 from . import fixtures as fx  # noqa: E402
 
-client = TestClient(app)
 
-
-def _build_and_load(document_dict: dict) -> type:
+def _build_and_load(client, document_dict: dict) -> type:
     """Run the editor's HTTP flow and load the returned Python module."""
     validation = client.post("/api/validate", json={"document": document_dict})
     assert validation.status_code == 200, validation.text
@@ -41,9 +35,9 @@ def _build_and_load(document_dict: dict) -> type:
     return namespace["ModelUnderTest"]  # type: ignore[return-value]
 
 
-def _forward_shape(document_dict: dict, input_shape: tuple[int, ...]) -> torch.Size:
+def _forward_shape(client, document_dict: dict, input_shape: tuple[int, ...]) -> torch.Size:
     torch.manual_seed(0)
-    model_cls = _build_and_load(document_dict)
+    model_cls = _build_and_load(client, document_dict)
     model = model_cls()
     model.eval()
     x = torch.randn(*input_shape)
@@ -52,30 +46,33 @@ def _forward_shape(document_dict: dict, input_shape: tuple[int, ...]) -> torch.S
     return y.shape
 
 
-def test_mlp_forward_pass_matches_declared_output() -> None:
-    output = _forward_shape(fx.mlp_document(), (4, 784))
+def test_mlp_forward_pass_matches_declared_output(client) -> None:
+    document = fx.mlp_document()
+    document["nodes"].reverse()  # follow edge order rather than array order
+    document["edges"].reverse()
+    output = _forward_shape(client, document, (4, 784))
     assert output == (4, 10)
 
 
-def test_binary_forward_pass() -> None:
-    output = _forward_shape(fx.binary_document(), (8, 20))
+def test_binary_forward_pass(client) -> None:
+    output = _forward_shape(client, fx.binary_document(), (8, 20))
     assert output == (8, 1)
 
 
-def test_identity_forward_pass() -> None:
-    output = _forward_shape(fx.identity_document(), (3, 10))
+def test_identity_forward_pass(client) -> None:
+    output = _forward_shape(client, fx.identity_document(), (3, 10))
     assert output == (3, 10)
 
 
-def test_flatten_forward_pass() -> None:
-    output = _forward_shape(fx.flatten_document(), (2, 784))
+def test_flatten_forward_pass(client) -> None:
+    output = _forward_shape(client, fx.flatten_document(), (2, 784))
     assert output == (2, 784)
 
 
-def test_dropout_forward_pass_in_eval_mode() -> None:
+def test_dropout_forward_pass_in_eval_mode(client) -> None:
     """In eval() mode, dropout is disabled, so output must be deterministic."""
     torch.manual_seed(0)
-    model_cls = _build_and_load(fx.dropout_document())
+    model_cls = _build_and_load(client, fx.dropout_document())
     model = model_cls().eval()
     x = torch.randn(2, 32)
     with torch.no_grad():
@@ -85,10 +82,10 @@ def test_dropout_forward_pass_in_eval_mode() -> None:
     assert y1.shape == (2, 4)
 
 
-def test_generated_model_has_correct_linear_in_features() -> None:
+def test_generated_model_has_correct_linear_in_features(client) -> None:
     """Indirectly verified via the forward pass, but assert the parameter
     shapes too — this is what a bad in_features inference would break."""
-    model_cls = _build_and_load(fx.mlp_document())
+    model_cls = _build_and_load(client, fx.mlp_document())
     model = model_cls()
     first_linear = model.layer_1  # type: ignore[attr-defined]
     assert isinstance(first_linear, torch.nn.Linear)
