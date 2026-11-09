@@ -175,6 +175,8 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
       selectedEdgeId: null,
       notice: infoNotice('Started a new graph.'),
       fitViewRequest: state.fitViewRequest + 1,
+      revision: state.revision + 1, requestId: state.requestId + 1,
+      validation: null, generatedCode: null, backendStatus: 'idle',
     })),
 
   getDocument: () =>

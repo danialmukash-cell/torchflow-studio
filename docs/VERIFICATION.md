@@ -27,3 +27,14 @@ Fixed JSON download document shadowing, tightened parameter validation and graph
 - The supplied DeepSeek answer was truncated halfway through graphStore.ts; frontend integration was completed separately.
 - Frontend npm installation timed out in the local container; rely on GitHub Actions for frontend typecheck/build results.
 - Backend only generates source text; it never executes generated code.
+
+## Milestone 3 local verification — 2026-11-09
+
+- Frontend: 29 tests passed, including reset during an in-flight generation;
+  TypeScript and the production build passed.
+- Backend: 41 tests passed, including CPU forward passes on Python returned by
+  `/api/generate` after validation through `/api/validate`.
+- Chrome against local Vite and FastAPI: loaded the MLP example, generated and
+  downloaded `torchflow_model.py`, and confirmed **New** disabled the previous
+  download. The downloaded module accepted a CPU tensor of shape `(3, 784)`
+  and returned `(3, 10)`.

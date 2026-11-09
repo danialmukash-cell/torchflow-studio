@@ -13,21 +13,31 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from app.generator import generate_code  # noqa: E402
-from app.schemas import GraphDocument  # noqa: E402
-from app.validation import validate_document  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.main import app  # noqa: E402
 
 from . import fixtures as fx  # noqa: E402
 
+client = TestClient(app)
+
 
 def _build_and_load(document_dict: dict) -> type:
-    """Validate, generate, compile, and return the generated class."""
-    doc = GraphDocument(**document_dict)
-    errors, shapes, _ = validate_document(doc)
-    assert errors == [], f"unexpected validation errors: {errors}"
-    code = generate_code(doc, shapes, class_name="ModelUnderTest")
+    """Run the editor's HTTP flow and load the returned Python module."""
+    validation = client.post("/api/validate", json={"document": document_dict})
+    assert validation.status_code == 200, validation.text
+    assert validation.json()["valid"], validation.text
+
+    response = client.post(
+        "/api/generate", json={"document": document_dict, "className": "ModelUnderTest"}
+    )
+    assert response.status_code == 200, response.text
+    generated = response.json()
+    assert generated["valid"], generated["errors"]
+    assert generated["className"] == "ModelUnderTest"
+    assert isinstance(generated["code"], str)
     namespace: dict[str, object] = {}
-    exec(compile(code, "<generated>", "exec"), namespace)  # noqa: S102 — test only
+    exec(compile(generated["code"], "<generated>", "exec"), namespace)  # noqa: S102 — test only
     return namespace["ModelUnderTest"]  # type: ignore[return-value]
 
 
