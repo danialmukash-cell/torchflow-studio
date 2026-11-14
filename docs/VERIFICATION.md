@@ -49,3 +49,19 @@ Fixed JSON download document shadowing, tightened parameter validation and graph
 - Chrome against Vite and the Rust server: loaded the MLP example, generated and
   downloaded `torchflow_model.py`, and confirmed **New** disabled the previous
   download. The downloaded module ran on CPU: `(3, 784)` in, `(3, 10)` out.
+
+## Editor history verification — 2026-11-14
+
+- Frontend: TypeScript check, 36 Vitest tests, and production build passed.
+- New regression coverage: node/edge restoration, parameter and name edits,
+  imports and New, bounded history, no-op edits, grouped dragging, session
+  hydration, and late generation responses after undo/redo.
+- Python reference backend: 43 tests passed, including CPU execution of exports.
+- Rust: formatting, Clippy with warnings denied, locked offline build and unit test passed; API contract and exported
+  PyTorch CPU suite: 39 tests passed against the locally built server.
+- Browser smoke check: Undo/Redo buttons, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y,
+  a multi-move node drag restored in one undo step, native text-field undo,
+  and generation of the restored MLP through the Rust API passed.
+- npm lockfile added; CI installs with `npm ci`.
+- History is deliberately limited to 100 document snapshots and is session-local.
+  Undo/redo invalidates cached API results; a layout drag itself preserves them.

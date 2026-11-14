@@ -71,7 +71,7 @@ export function NodePalette() {
       </div>
 
       <p className="border-t border-slate-800 p-3 text-[11px] leading-snug text-slate-500">
-        Milestone 1 supports a single sequential path: one input, one output,
+        Supports a single sequential path: one input, one output,
         no branching.
       </p>
     </aside>

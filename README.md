@@ -20,6 +20,7 @@ and (soon) train it — without writing boilerplate.
 | Duplicate node (Inspector button) | ✅ |
 | Edit node parameters (Inspector) | ✅ |
 | Rename graph | ✅ |
+| Undo / redo (100 actions, including node dragging) | ✅ |
 | Single-path connection rules with error messages | ✅ |
 | Autosave to `localStorage` + restore on reload | ✅ |
 | Download graph as JSON | ✅ |
@@ -38,6 +39,13 @@ and (soon) train it — without writing boilerplate.
 
 ## Setup
 
+Clone the repository first:
+
+```bash
+git clone https://github.com/danialmukash-cell/torchflow-studio.git
+cd torchflow-studio
+```
+
 Launch the Rust backend (one terminal, from the repository root):
 
 ```bash
@@ -51,7 +59,7 @@ Launch frontend in another terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -96,6 +104,12 @@ The application server itself never executes generated code.
   fields. Edits are applied immediately.
 - **Delete** — select a node or a connection and press `Backspace` / `Delete`,
   or use the Inspector button.
+- **Undo / redo** — use the toolbar or `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`
+  (`Ctrl+Y` also redoes). A complete drag is one action. New, Load, and example
+  changes can also be undone. Text fields keep their native undo shortcuts.
+  History holds the latest 100 actions for the current session; reload restores
+  the saved graph with an empty history. Undo/redo clears previous validation
+  and generated code, so validate again after restoring a graph.
 - **Save** — the toolbar *Save* button downloads a `.torchflow.json` file.
 - **Load** — the toolbar *Load* button opens a file picker and validates the
   file against schema v1 before applying it.
@@ -170,7 +184,7 @@ by the Python-facing validator and generator in Milestone 2.
 - Shape inference currently supports sequential flat feature vectors; CNNs and multi-dimensional tensors are not implemented.
 - You can import incomplete graphs to keep editing. Backend validation must pass
   before you can generate Python.
-- No undo/redo.
+- Undo history is session-local and is not included in JSON exports or autosave.
 
 ## Roadmap
 
@@ -183,7 +197,7 @@ by the Python-facing validator and generator in Milestone 2.
 
 ## Verification
 
-Run `npm install`, `npm run typecheck`, `npm test`, and `npm run build` to verify
+Run `npm ci`, `npm run typecheck`, `npm test`, and `npm run build` to verify
 the frontend. The backend suite exercises validation and export through the API,
 then runs the returned Python on CPU in the test process. The server does not
 execute it.
