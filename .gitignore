@@ -30,6 +30,9 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# Rust
+/backend-rust/target/
+
 # Env
 .env
 .env.*

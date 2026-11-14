@@ -3,9 +3,9 @@
 A visual PyTorch IDE. Build a neural network on an infinite canvas, inspect it,
 and (soon) train it — without writing boilerplate.
 
-> **Status: Milestone 2 — frontend + PyTorch code generator.** The visual graph editor, local JSON persistence, and example networks are implemented.
-> The FastAPI backend now validates graphs, infers tensor shapes, and generates
-> template-based PyTorch nn.Module models. Model execution/training is not served by the backend.
+> **Status: Milestone 3 — validation and PyTorch export verified end to end.** The visual graph editor, local JSON persistence, and example networks are implemented.
+> The Rust backend validates graphs, infers tensor shapes, and generates
+> PyTorch `nn.Module` source. Python and PyTorch are needed only to run the exported model.
 
 ## What works today
 
@@ -20,42 +20,46 @@ and (soon) train it — without writing boilerplate.
 | Duplicate node (Inspector button) | ✅ |
 | Edit node parameters (Inspector) | ✅ |
 | Rename graph | ✅ |
+| Undo / redo (100 actions, including node dragging) | ✅ |
 | Single-path connection rules with error messages | ✅ |
 | Autosave to `localStorage` + restore on reload | ✅ |
 | Download graph as JSON | ✅ |
 | Upload graph JSON (schema-validated) | ✅ |
 | Two bundled example networks | ✅ |
 | Live graph JSON inspector panel | ✅ |
-| Tensor shape propagation | ✅ FastAPI |
-| PyTorch code generation | ✅ FastAPI |
+| Tensor shape propagation | ✅ Rust |
+| PyTorch code generation | ✅ Rust |
 | Training / metrics | ❌ Future |
 
 ## Requirements
 
 - Node.js 20+ and npm 10+
-- Python 3.11+ for the FastAPI backend
-- PyTorch for CPU forward-pass tests (not needed to serve the backend)
+- Stable Rust and Cargo for the backend
+- Python 3.11+ and PyTorch to execute exported models or run the API contract tests
 
 ## Setup
 
-Launch backend (one terminal):
+Clone the repository first:
 
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+git clone https://github.com/danialmukash-cell/torchflow-studio.git
+cd torchflow-studio
 ```
 
-Open http://127.0.0.1:8000/docs for the API documentation.
+Launch the Rust backend (one terminal, from the repository root):
+
+```bash
+cargo run --locked --manifest-path backend-rust/Cargo.toml
+```
+
+The API listens on `127.0.0.1:8000`. See the [backend guide](backend-rust/README.md)
+for endpoints and configuration.
 
 Launch frontend in another terminal:
 
 ```bash
-git clone https://github.com/danialmukash-cell/torchflow-studio.git
-cd torchflow-studio/frontend
-npm install
+cd frontend
+npm ci
 npm run dev
 ```
 
@@ -71,7 +75,15 @@ Open <http://localhost:5173>.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Run the unit tests (Vitest) |
 
-## Backend test suite
+## Backend test suites
+
+```bash
+cargo test --locked --manifest-path backend-rust/Cargo.toml
+```
+
+The [API contract suite](backend-rust/README.md#verify-with-pytorch) sends requests
+to the Rust server and runs the returned models on CPU. To run the Python
+reference implementation's tests in process:
 
 ```bash
 cd backend
@@ -92,6 +104,12 @@ The application server itself never executes generated code.
   fields. Edits are applied immediately.
 - **Delete** — select a node or a connection and press `Backspace` / `Delete`,
   or use the Inspector button.
+- **Undo / redo** — use the toolbar or `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`
+  (`Ctrl+Y` also redoes). A complete drag is one action. New, Load, and example
+  changes can also be undone. Text fields keep their native undo shortcuts.
+  History holds the latest 100 actions for the current session; reload restores
+  the saved graph with an empty history. Undo/redo clears previous validation
+  and generated code, so validate again after restoring a graph.
 - **Save** — the toolbar *Save* button downloads a `.torchflow.json` file.
 - **Load** — the toolbar *Load* button opens a file picker and validates the
   file against schema v1 before applying it.
@@ -107,8 +125,8 @@ Milestone 1 supports **sequential single-path** networks only:
 - No self-loops, no cycles, no branching.
 - `Input` cannot have incoming connections; `Output` cannot have outgoing ones.
 
-Rejected connections show an explanation in the bottom-center toast. Branching
-support requires the real DAG validator from Milestone 2.
+Rejected connections show an explanation in the bottom-center toast. Both the
+editor and backend currently support sequential graphs only.
 
 ## Graph JSON schema (v1)
 
@@ -153,7 +171,7 @@ by the Python-facing validator and generator in Milestone 2.
 
 ## What's new in Milestone 2
 
-- **Validate** checks graph topology, parameters and tensor dimensions via FastAPI.
+- **Validate** checks graph topology, parameters and tensor dimensions via the API.
 - **Generate PyTorch** emits a runnable `torch.nn.Module` when the graph is valid.
 - **Validation** tab shows errors and tensor shapes (excluding batch dimension).
 - **PyTorch** tab displays the generated Python and lets you download `torchflow_model.py`.
@@ -164,26 +182,29 @@ by the Python-facing validator and generator in Milestone 2.
 
 - Desktop-first layout; there is no mobile layout yet.
 - Shape inference currently supports sequential flat feature vectors; CNNs and multi-dimensional tensors are not implemented.
-- Imported JSON is checked for supported single-path connectivity, but incomplete
-  graphs are allowed until the full Milestone 2 validator is implemented.
-- No undo/redo.
+- You can import incomplete graphs to keep editing. Backend validation must pass
+  before you can generate Python.
+- Undo history is session-local and is not included in JSON exports or autosave.
 
 ## Roadmap
 
 - **Milestone 2 (implemented)** — FastAPI backend: `POST /api/validate`, `POST /api/generate`,
   `GET /api/health`; tensor shape propagation; PyTorch `nn.Module` generation.
-- **Milestone 3** — integration tests, generated-code execution checks.
-- **Future** — training, loss/accuracy charts, gradient visualization, dataset
-  upload, ONNX export.
+- **Milestone 3 (implemented)** — Rust backend, API tests through real CPU forward
+  passes, and a browser smoke check for generation and download.
+- **Next** — validate and export a branching model with a residual connection,
+  including diagnostics that point to the exact incompatible edge.
 
 ## Verification
 
-Run `npm install`, `npm run typecheck`, `npm test`, and `npm run build` before declaring this version production-ready.
-The code is not yet an executable PyTorch IDE; the FastAPI backend is planned for Milestone 2.
+Run `npm ci`, `npm run typecheck`, `npm test`, and `npm run build` to verify
+the frontend. The backend suite exercises validation and export through the API,
+then runs the returned Python on CPU in the test process. The server does not
+execute it.
 
 ## Contributing and next step
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [verification log](docs/VERIFICATION.md), and [Milestone 2 prompt](docs/NEXT_DEEPSEEK_PROMPT.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [verification log](docs/VERIFICATION.md).
 
 ## License
 

@@ -28,6 +28,8 @@ function CanvasInner() {
   const fitViewRequest = useGraphStore((state) => state.fitViewRequest);
   const addNode = useGraphStore((state) => state.addNode);
   const moveNode = useGraphStore((state) => state.moveNode);
+  const beginDrag = useGraphStore((state) => state.beginDrag);
+  const endDrag = useGraphStore((state) => state.endDrag);
   const deleteNode = useGraphStore((state) => state.deleteNode);
   const deleteEdge = useGraphStore((state) => state.deleteEdge);
   const connect = useGraphStore((state) => state.connect);
@@ -142,6 +144,8 @@ function CanvasInner() {
         edges={rfEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onNodeDragStart={beginDrag}
+        onNodeDragStop={endDrag}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={(_, node) => selectNode(node.id)}
